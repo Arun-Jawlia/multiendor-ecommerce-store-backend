@@ -17,6 +17,7 @@ const sendToken = require("../utils/SendToken");
 const { isAuthenticated, isAdmin } = require("../middleware/auth");
 const generator = require("generate-password");
 const cloudinary = require("cloudinary");
+const ENUM = require("../config/ENUM");
 
 // ===================|| REGISTER USER ||============================
 UserRouter.post("/create-user", async (req, res, next) => {

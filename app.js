@@ -26,7 +26,7 @@ app.use("/test", (req, res) => {
 // app.use("/", express.static(path.join(__dirname, "./uploads")))
 app.use(
   cors({
-    origin: "https://multivendor-ecommerce-store.vercel.app",
+    origin: "https://multivendor-ecommerce-store-7d3tu3k9r-arunjawlias-projects.vercel.app/",
     credentials: true,
   })
 );

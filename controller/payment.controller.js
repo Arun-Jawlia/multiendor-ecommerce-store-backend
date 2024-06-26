@@ -22,7 +22,7 @@ PaymentRouter.post(
 PaymentRouter.get(
   "/get/stripeapikey",
   CatchAsyncError(async (req, res, next) => {
-    res.status(200).json({ stripeApikey: process.env.STRIPE_SECRET_KEY });
+    res.status(200).json({ stripeApikey: process.env.STRIPE_API_KEY });
   })
 );
 

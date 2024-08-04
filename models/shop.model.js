@@ -4,10 +4,15 @@ const shopSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Please enter your shop name"],
+    trim: true,
+    index: true,
   },
   email: {
     type: String,
     required: [true, "Please enter your shop email!"],
+    unique: true,
+    lowecase: true,
+    trim: true,
   },
   password: {
     type: String,
@@ -29,7 +34,7 @@ const shopSchema = new mongoose.Schema({
   role: {
     type: String,
     default: "Seller",
-    enum:['Seller']
+    enum: ["Seller"],
   },
   avatar: {
     public_id: {
@@ -81,6 +86,9 @@ const shopSchema = new mongoose.Schema({
   ],
   resetPasswordToken: String,
   resetPasswordTime: Date,
+  refreshToken: {
+    type: String,
+  },
 });
 
 const ShopModel = mongoose.model("Shop", shopSchema);

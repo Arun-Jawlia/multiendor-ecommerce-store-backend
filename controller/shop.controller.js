@@ -14,58 +14,74 @@ const { ShopModel } = require("../models/shop.model");
 const { hashPassword, comparePassword } = require("../models/user.model");
 const sendShopToken = require("../utils/SendShopToken");
 const ENUM = require("../config/ENUM");
-const cloudinary= require('cloudinary')
+const cloudinary = require("cloudinary");
+const upload = require("../multer");
+const uploadOnCloudinary = require("../utils/Cloudinary");
 
 // ===================|| CREATE SHOP OR REGISTER SHOP ||============================
-ShopRouter.post("/create-shop", async (req, res, next) => {
-  try {
-    const { name, email, password, phoneNumber, address, zipCode, avatar } =
-      req.body;
-    const shopEmail = await ShopModel.findOne({ email });
-    if (shopEmail) {
-      return next(new ErrorHandler("Seller/Shop already exists", 400));
-    }
-
-    const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
-      folder: ENUM.CLOUDINARY_AVATAR,
-    });
-    const hashedPassword = await hashPassword(password);
-
-    const seller = new ShopModel({
-      email,
-      name,
-      password: hashedPassword,
-      avatar: {
-        public_id: myCloud.public_id,
-        url: myCloud.secure_url,
-      },
-      phoneNumber,
-      address,
-      zipCode,
-    });
-
-    const activationToken = createActivationToken(seller);
-
-    // const activationURL = `http://localhost:3000/shop/activation/${activationToken}`;
-    const activationURL = `https://multivendor-ecommerce-store.vercel.app/shop/activation/${activationToken}`;
+ShopRouter.post(
+  "/create-shop",
+  upload.fields([
+    {
+      name: "avatar",
+      maxCount: 1,
+    },
+  ]),
+  async (req, res, next) => {
     try {
-      await sendVerficationEmail({
-        email: seller.email,
-        subject: `Activate your account`,
-        message: `Hello ${seller.name} , Please click on the link to activate your account : ${activationURL}`,
+      const { name, email, password, phoneNumber, address, zipCode } = req.body;
+      const shopEmail = await ShopModel.findOne({ email });
+      if (shopEmail) {
+        return next(new ErrorHandler("Seller/Shop already exists", 400));
+      }
+      const avatarLocalPath = req?.files?.avatar[0]?.path;
+
+      if (!avatarLocalPath) {
+        return next(new ErrorHandler("Avatar is required", 400));
+      }
+
+      const avatar = await uploadOnCloudinary(
+        avatarLocalPath,
+        ENUM.CLOUDINARY_AVATAR
+      );
+      const hashedPassword = await hashPassword(password);
+
+      const seller = new ShopModel({
+        email,
+        name,
+        password: hashedPassword,
+        avatar: {
+          public_id: avatar.public_id,
+          url: avatar.secure_url,
+        },
+        phoneNumber,
+        address,
+        zipCode,
       });
 
-      res.status(201).json({
-        success: true,
-        message: `Please check your email ${seller.email} to activate your seller account`,
-      });
+      const activationToken = createActivationToken(seller);
+
+      const activationURL = `http://localhost:3000/shop/activation/${activationToken}`;
+      // const activationURL = `https://multivendor-ecommerce-store.vercel.app/shop/activation/${activationToken}`;
+      try {
+        await sendVerficationEmail({
+          email: seller.email,
+          subject: `Activate your account`,
+          message: `Hello ${seller.name} , Please click on the link to activate your account : ${activationURL}`,
+        });
+
+        res.status(201).json({
+          success: true,
+          message: `Please check your email ${seller.email} to activate your seller account`,
+        });
+      } catch (error) {
+        return next(new ErrorHandler(error.message, 400));
+      }
     } catch (error) {
-      return next(new ErrorHandler(error.message, 400));
+      return next(new ErrorHandler(error.message, 500));
     }
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
   }
-});
+);
 
 // =====================|| CREATE ACTIVATION TOKEN ||=====================
 const createActivationToken = (seller) => {
@@ -229,10 +245,15 @@ ShopRouter.put(
       if (existSeller?.avatar) {
         await cloudinary.v2.uploader.destroy(imageId);
       } else {
-        const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
-          folder: ENUM.CLOUDINARY_AVATAR,
-          width: 150,
-        });
+        const avatarLocalPath = req.body.avatar;
+        if (!avatarLocalPath) {
+          return next(new ErrorHandler("Avatar is required", 400));
+        }
+
+        const avatar = await uploadOnCloudinary(
+          avatarLocalPath,
+          ENUM.CLOUDINARY_AVATAR
+        );
 
         existSeller.avatar = {
           public_id: myCloud.public_id,
@@ -322,7 +343,6 @@ ShopRouter.delete(
       const imageId = seller.avatar.public_id;
 
       await cloudinary.v2.uploader.destroy(imageId);
-
 
       await Shop.findByIdAndDelete(req.params.id);
 

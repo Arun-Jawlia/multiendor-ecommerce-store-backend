@@ -14,6 +14,7 @@ const fs = require("fs");
 const OrderModel = require("../models/order.model");
 const cloudinary = require("cloudinary");
 const ENUM = require("../config/ENUM");
+const uploadOnCloudinary = require("../utils/Cloudinary");
 
 // ======================|| CREATE PRODUCT ||================================
 ProductRouter.post(
@@ -36,9 +37,14 @@ ProductRouter.post(
         const imagesLinks = [];
 
         for (let i = 0; i < images.length; i++) {
-          const result = await cloudinary.v2.uploader.upload(images[i], {
-            folder: ENUM.CLOUDINARY_PRODUCT,
-          });
+          const result = await uploadOnCloudinary(
+            images[i],
+            ENUM.CLOUDINARY_PRODUCT
+          );
+
+          // await cloudinary.v2.uploader.upload(images[i], {
+          //   folder: ENUM.CLOUDINARY_PRODUCT,
+          // });
 
           imagesLinks.push({
             public_id: result.public_id,
@@ -156,7 +162,7 @@ ProductRouter.put(
       } else {
         product.reviews.push(review);
       }
-      
+
       let avg = 0;
       product.reviews.forEach((rev) => {
         avg += rev.rating;

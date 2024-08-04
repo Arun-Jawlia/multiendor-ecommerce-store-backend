@@ -1,7 +1,5 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const multer = require("multer");
-const path = require("path");
 const upload = require("../multer");
 const {
   userModel,
@@ -18,53 +16,79 @@ const { isAuthenticated, isAdmin } = require("../middleware/auth");
 const generator = require("generate-password");
 const cloudinary = require("cloudinary");
 const ENUM = require("../config/ENUM");
+const uploadOnCloudinary = require("../utils/Cloudinary");
 
 // ===================|| REGISTER USER ||============================
-UserRouter.post("/create-user", async (req, res, next) => {
-  try {
-    const { name, email, password, avatar } = req.body;
-    const userEmail = await userModel.findOne({ email });
-    if (userEmail) {
-      return next(new ErrorHandler("User already exists", 400));
-    }
-
-    const myCloud = await cloudinary.v2.uploader.upload(avatar, {
-      folder: ENUM.CLOUDINARY_AVATAR,
-    });
-
-    const hashedPassword = await hashPassword(password);
-    const user = new userModel({
-      email,
-      name,
-      password: hashedPassword,
-      avatar: {
-        public_id: myCloud.public_id,
-        url: myCloud.secure_url,
-      },
-    });
-
-    const activationToken = createActivationToken(user);
-
-    // const activationURL = `http://localhost:3000/activation/$/{activationToken}`;
-    const activationURL = `https://multivendor-ecommerce-store.vercel.app/activation/${activationToken}`;
+UserRouter.post(
+  "/create-user",
+  upload.fields([
+    {
+      name: "avatar",
+      maxCount: 1,
+    },
+  ]),
+  async (req, res, next) => {
     try {
-      await sendVerficationEmail({
+      const { name, email, password } = req.body;
+      console.log(req.body);
+      if ([name, email, password].some((field) => field?.trim() === "")) {
+        return next(new ErrorHandler("All Fields Required", 400));
+      }
+
+      const userEmail = await userModel.findOne({ email });
+      if (userEmail) {
+        return next(new ErrorHandler("User already exists", 400));
+      }
+
+      const avatarLocalPath = req?.files?.avatar[0]?.path;
+
+      if (!avatarLocalPath) {
+        return next(new ErrorHandler("Avatar is required", 400));
+      }
+
+      const avatar = await uploadOnCloudinary(
+        avatarLocalPath,
+        ENUM.CLOUDINARY_AVATAR
+      );
+
+      const hashedPassword = await hashPassword(password);
+      const user = new userModel({
+        email,
+        name,
+        password: hashedPassword,
+        avatar: {
+          public_id: avatar.public_id,
+          url: avatar.secure_url,
+        },
+      });
+
+      const activationToken = createActivationToken(user);
+
+      const activationURL = `http://localhost:3000/activation/${activationToken}`;
+      // const activationURL = `https://multivendor-ecommerce-store.vercel.app/activation/${activationToken}`;
+
+      // Log email details before sending
+      const emailDetails = {
         email: user.email,
         subject: `Activate your account`,
-        message: `Hello ${user.name} , Please click on the link to activate your account : ${activationURL}`,
-      });
+        message: `Hello ${user.name}, Please click on the link to activate your account: ${activationURL}`,
+      };
 
-      res.status(201).json({
-        success: true,
-        message: `Please check your email ${user.email} to activate your account`,
-      });
+      try {
+        await sendVerficationEmail(emailDetails);
+
+        res.status(201).json({
+          success: true,
+          message: `Please check your email ${user.email} to activate your account`,
+        });
+      } catch (error) {
+        return next(new ErrorHandler(error.message, 400));
+      }
     } catch (error) {
-      return next(new ErrorHandler(error.message, 400));
+      return next(new ErrorHandler(error.message, 500));
     }
-  } catch (error) {
-    return next(new ErrorHandler(error.message, 400));
   }
-});
+);
 
 // =====================|| ACTIVATION TOKEN ||=====================
 const createActivationToken = (user) => {
@@ -284,7 +308,12 @@ UserRouter.put(
 UserRouter.put(
   "/update-user-avatar",
   isAuthenticated,
-  upload.single("image"),
+  upload.fields([
+    {
+      name: "avatar",
+      maxCount: 1,
+    },
+  ]),
   CatchAsyncError(async (req, res, next) => {
     try {
       const id = req.user.id ? req.user.id : req.user._id;
@@ -294,14 +323,19 @@ UserRouter.put(
         const imageId = existUser.avatar.public_id;
         await cloudinary.v2.uploader.destroy(imageId);
 
-        const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
-          folder: ENUM.CLOUDINARY_AVATAR,
-          width: 150,
-        });
+        const avatarLocalPath = req.body.avatar;
+        if (!avatarLocalPath) {
+          return next(new ErrorHandler("Avatar is required", 400));
+        }
+
+        const avatar = await uploadOnCloudinary(
+          avatarLocalPath,
+          ENUM.CLOUDINARY_AVATAR
+        );
 
         existUser.avatar = {
-          public_id: myCloud.public_id,
-          url: myCloud.secure_url,
+          public_id: avatar.public_id,
+          url: avatar.secure_url,
         };
         await existUser.save();
         res.status(200).json({

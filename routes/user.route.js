@@ -10,7 +10,11 @@ const {
 const { isAuthenticated } = require("../middleware/auth");
 const UserRouter = express.Router();
 
-UserRouter.post("/create-user", upload.single("file"), CreateUser);
+UserRouter.post(
+  "/create-user",
+  upload.single('file'),
+  CreateUser
+);
 UserRouter.post("/activation", UserActivation);
 UserRouter.post("/azure-authentication", AzureAuthentication);
 UserRouter.post("/login-user", LoginUser);

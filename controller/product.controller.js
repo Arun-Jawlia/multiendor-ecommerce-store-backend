@@ -19,20 +19,16 @@ const uploadOnCloudinary = require("../utils/Cloudinary");
 // ======================|| CREATE PRODUCT ||================================
 ProductRouter.post(
   "/create-product",
+  upload.array('images',5),
   CatchAsyncError(async (req, res, next) => {
     try {
+      console.log('Create Product', req.body), req.files
       const shopId = req.body.shopId;
       const shop = await ShopModel.findById(shopId);
       if (!shop) {
         return next(new ErrorHandler("Shop Id is not valid!", 400));
       } else {
-        let images = [];
-
-        if (typeof req.body.images === "string") {
-          images.push(req.body.images);
-        } else {
-          images = req.body.images;
-        }
+        let images = req.files.map(file => file.path); 
 
         const imagesLinks = [];
 

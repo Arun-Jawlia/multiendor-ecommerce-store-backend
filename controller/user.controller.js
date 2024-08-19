@@ -323,7 +323,9 @@ UserRouter.put(
         const imageId = existUser.avatar.public_id;
         await cloudinary.v2.uploader.destroy(imageId);
 
-        const avatarLocalPath = req.body.avatar;
+     
+        const avatarLocalPath = req?.files?.avatar[0]?.path;
+
         if (!avatarLocalPath) {
           return next(new ErrorHandler("Avatar is required", 400));
         }

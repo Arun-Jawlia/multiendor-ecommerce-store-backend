@@ -83,60 +83,65 @@ This system supports **users, sellers, carts, orders, payments, messaging, withd
 
 ## 📁 Project Structure
 
-src/
-├── app.js
-├── server.js
-├── config/
-│ ├── ENUM.js
-│ └── db.js
-├── models/
-│ ├── user.model.js
-│ ├── shop.model.js
-│ ├── product.model.js
-│ ├── cart.model.js
-│ ├── order.model.js
-│ ├── conversation.model.js
-│ ├── message.model.js
-│ ├── coupon.model.js
-│ ├── event.model.js
-│ └── withdraw.model.js
-├── routes/
-│ ├── user.routes.js
-│ ├── shop.routes.js
-│ ├── product.routes.js
-│ ├── cart.routes.js
-│ ├── order.routes.js
-│ ├── payment.routes.js
-│ ├── conversation.routes.js
-│ ├── message.routes.js
-│ ├── coupon.routes.js
-│ ├── event.routes.js
-│ └── withdraw.routes.js
-├── controllers/
-│ ├── user.controllers.js
-│ ├── shop.controllers.js
-│ ├── product.controllers.js
-│ ├── cart.controllers.js
-│ ├── order.controllers.js
-│ ├── payment.controllers.js
-│ ├── conversation.controllers.js
-│ ├── message.controllers.js
-│ ├── coupon.controllers.js
-│ ├── event.controllers.js
-│ └── withdraw.controllers.js
-├── middleware/
-│ ├── auth.js
-│ ├── CatchAsyncError.js
-│ └── error.js
-├── utils/
-│ ├── ErrorHandler.js
-│ ├── SendToken.js
-│ ├── SendShopToken.js
-│ ├── SendVerificationEmail.js
-│ └── Cloudinary.js
-
-
-
+```
+multi-vendor-ecommerce-backend/
+├── src/
+│   ├── app.js
+│   ├── server.js
+│   ├── config/
+│   │   ├── db.js
+│   │   └── ENUM.js
+│   ├── models/
+│   │   ├── user.model.js
+│   │   ├── shop.model.js
+│   │   ├── product.model.js
+│   │   ├── cart.model.js
+│   │   ├── order.model.js
+│   │   ├── conversation.model.js
+│   │   ├── message.model.js
+│   │   ├── coupon.model.js
+│   │   ├── event.model.js
+│   │   └── withdraw.model.js
+│   ├── routes/
+│   │   ├── user.routes.js
+│   │   ├── shop.routes.js
+│   │   ├── product.routes.js
+│   │   ├── cart.routes.js
+│   │   ├── order.routes.js
+│   │   ├── payment.routes.js
+│   │   ├── conversation.routes.js
+│   │   ├── message.routes.js
+│   │   ├── coupon.routes.js
+│   │   ├── event.routes.js
+│   │   └── withdraw.routes.js
+│   ├── controllers/
+│   │   ├── user.controllers.js
+│   │   ├── shop.controllers.js
+│   │   ├── product.controllers.js
+│   │   ├── cart.controllers.js
+│   │   ├── order.controllers.js
+│   │   ├── payment.controllers.js
+│   │   ├── conversation.controllers.js
+│   │   ├── message.controllers.js
+│   │   ├── coupon.controllers.js
+│   │   ├── event.controllers.js
+│   │   └── withdraw.controllers.js
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   ├── CatchAsyncError.js
+│   │   └── error.js
+│   ├── utils/
+│   │   ├── ErrorHandler.js
+│   │   ├── SendToken.js
+│   │   ├── SendShopToken.js
+│   │   ├── SendVerificationEmail.js
+│   │   └── Cloudinary.js
+│   └── uploads/
+├── .env
+├── package.json
+├── package-lock.json
+└── README.md
+```
 ---
 
 ### 🛡 Security Highlights

@@ -7,16 +7,16 @@ const cors = require("cors");
 const path = require('path');
 
 // Routes
-const ShopRouter = require("./controller/shop.controller");
-const ProductRouter = require("./controller/product.controller");
-const EventRouter = require("./controller/event.controller");
-const CouponRouter = require("./controller/coupon.controller");
-const PaymentRouter = require("./controller/payment.controller");
-const OrderRouter = require("./controller/order.controller");
-const ConversationRouter = require("./controller/conversation.controller");
-const MessageRouter = require("./controller/message.controller");
-const WithdrawRouter = require("./controller/withdraw.controller");
-const UserRouter = require("./controller/user.controller");
+const UserRouter = require("./routes/user.routes");
+const ShopRouter = require("./routes/shop.routes");
+const ProductRouter = require("./routes/product.routes");
+const EventRouter = require("./routes/events.routes");
+const CouponRouter = require("./routes/coupon.routes");
+const PaymentRouter = require("./routes/payment.routes");
+const OrderRouter = require("./routes/order.routes");
+const ConversationRouter = require("./routes/conversation.routes");
+const MessageRouter = require("./routes/message.routes");
+const WithdrawRouter = require("./routes/withdraw.routes");
 
 // Config
 if (process.env.NODE_ENV !== "PRODUCTION") {

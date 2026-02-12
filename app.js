@@ -4,7 +4,7 @@ const ErrorHandler = require("./middleware/error");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const path = require('path');
+const path = require("path");
 
 // Routes
 const UserRouter = require("./routes/user.routes");
@@ -25,18 +25,20 @@ if (process.env.NODE_ENV !== "PRODUCTION") {
   });
 }
 // Middleware configuration
-app.use(express.json())
+app.use(express.json());
 app.use(cookieParser());
-app.use("/", express.static(path.join(__dirname, "./uploads")))
+app.use("/", express.static(path.join(__dirname, "./uploads")));
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true,
-  })
+    origin: "http://localhost:3000", // frontend URL
+    credentials: true, // 🔴 REQUIRED for cookies
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
 );
 
-// Routes 
+// Routes
 app.use("/api/v1/user", UserRouter);
 app.use("/api/v1/shop", ShopRouter);
 app.use("/api/v1/product", ProductRouter);

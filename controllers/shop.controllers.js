@@ -30,10 +30,7 @@ exports.createShop = CatchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Avatar is required", 400));
   }
 
-  const avatar = await uploadOnCloudinary(
-    avatarPath,
-    ENUM.CLOUDINARY_AVATAR
-  );
+  const avatar = await uploadOnCloudinary(avatarPath, ENUM.CLOUDINARY_AVATAR);
 
   const seller = {
     name,
@@ -49,27 +46,23 @@ exports.createShop = CatchAsyncError(async (req, res, next) => {
   };
 
   const activationToken = createActivationToken(seller);
-  const activationURL = `http://localhost:3000/shop/activation/${activationToken}`;
-
-  await sendVerficationEmail({
-    email,
-    subject: "Activate your seller account",
-    message: `Hello ${name}, activate your account: ${activationURL}`,
-  });
+  const activationURL = `http://localhost:3000/shop/activate-account/${activationToken}`;
 
   res.status(201).json({
     success: true,
     message: `Check your email ${email} to activate your seller account`,
+  });
+  sendVerficationEmail({
+    email,
+    subject: "Activate your seller account",
+    message: `Hello ${name}, activate your account: ${activationURL}`,
   });
 });
 
 exports.activateShop = CatchAsyncError(async (req, res, next) => {
   const { activation_token } = req.body;
 
-  const decoded = jwt.verify(
-    activation_token,
-    process.env.ACTIVATION_SECRET
-  );
+  const decoded = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
 
   if (await ShopModel.findOne({ email: decoded.seller.email })) {
     return next(new ErrorHandler("Seller already exists", 400));
@@ -127,19 +120,13 @@ exports.updateShopAvatar = CatchAsyncError(async (req, res, next) => {
   const seller = await ShopModel.findById(req.seller.id);
 
   const avatarPath = req?.files?.avatar?.[0]?.path;
-  if (!avatarPath)
-    return next(new ErrorHandler("Avatar required", 400));
+  if (!avatarPath) return next(new ErrorHandler("Avatar required", 400));
 
   if (seller.avatar?.public_id) {
-    await cloudinary.v2.uploader.destroy(
-      seller.avatar.public_id
-    );
+    await cloudinary.v2.uploader.destroy(seller.avatar.public_id);
   }
 
-  const avatar = await uploadOnCloudinary(
-    avatarPath,
-    ENUM.CLOUDINARY_AVATAR
-  );
+  const avatar = await uploadOnCloudinary(avatarPath, ENUM.CLOUDINARY_AVATAR);
 
   seller.avatar = {
     public_id: avatar.public_id,
@@ -171,9 +158,7 @@ exports.adminDeleteSeller = CatchAsyncError(async (req, res, next) => {
   if (!seller) return next(new ErrorHandler("Seller not found", 404));
 
   if (seller.avatar?.public_id) {
-    await cloudinary.v2.uploader.destroy(
-      seller.avatar.public_id
-    );
+    await cloudinary.v2.uploader.destroy(seller.avatar.public_id);
   }
 
   await seller.deleteOne();
@@ -188,7 +173,7 @@ exports.updateWithdrawMethod = CatchAsyncError(async (req, res) => {
   const seller = await ShopModel.findByIdAndUpdate(
     req.seller.id,
     { withdrawMethod: req.body.withdrawMethod },
-    { new: true }
+    { new: true },
   );
 
   res.status(200).json({ success: true, seller });

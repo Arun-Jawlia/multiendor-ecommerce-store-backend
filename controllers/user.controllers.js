@@ -23,54 +23,57 @@ const createActivationToken = (user) =>
 exports.createUser = CatchAsyncError(async (req, res, next) => {
   const { name, email, password } = req.body;
 
-  if ([name, email, password].some((f) => !f?.trim())) {
-    return next(new ErrorHandler("All Fields Required", 400));
+  if (!name || !email || !password) {
+    return next(new ErrorHandler("All fields required", 400));
   }
 
-  if (await userModel.findOne({ email })) {
+  if (await userModel.exists({ email })) {
     return next(new ErrorHandler("User already exists", 400));
   }
 
   const avatarPath = req?.files?.avatar?.[0]?.path;
-  if (!avatarPath) return next(new ErrorHandler("Avatar is required", 400));
+  if (!avatarPath) {
+    return next(new ErrorHandler("Avatar is required", 400));
+  }
 
-  const avatar = await uploadOnCloudinary(
-    avatarPath,
-    ENUM.CLOUDINARY_AVATAR
-  );
+  // 🔥 Run heavy tasks in parallel
+  const [hashedPassword, avatar] = await Promise.all([
+    hashPassword(password),
+    uploadOnCloudinary(avatarPath, ENUM.CLOUDINARY_AVATAR),
+  ]);
 
-  const user = {
+  const userPayload = {
     name,
     email,
-    password: await hashPassword(password),
+    password: hashedPassword,
     avatar: {
       public_id: avatar.public_id,
       url: avatar.secure_url,
     },
   };
 
-  const activationToken = createActivationToken(user);
+  const activationToken = createActivationToken(userPayload);
   const activationURL = `http://localhost:3000/activation/${activationToken}`;
 
-  await sendVerficationEmail({
-    email,
-    subject: "Activate your account",
-    message: `Hello ${name}, click to activate: ${activationURL}`,
-  });
-
+  // ⚡ Send response immediately
   res.status(201).json({
     success: true,
     message: `Please check your email ${email}`,
   });
+
+  // 🚀 Fire-and-forget email
+  sendVerficationEmail({
+    email,
+    subject: "Activate your account",
+    message: `Hello ${name}, click to activate: ${activationURL}`,
+  }).catch(console.error);
 });
+
 
 exports.activateUser = CatchAsyncError(async (req, res, next) => {
   const { activation_token } = req.body;
 
-  const decoded = jwt.verify(
-    activation_token,
-    process.env.ACTIVATION_SECRET
-  );
+  const decoded = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
 
   if (await userModel.findOne({ email: decoded.user.email })) {
     return next(new ErrorHandler("User already exists", 400));
@@ -91,7 +94,7 @@ exports.azureAuthentication = CatchAsyncError(async (req, res) => {
   if (user) return sendToken(user, 200, res);
 
   const password = await hashPassword(
-    generator.generate({ length: 20, numbers: true })
+    generator.generate({ length: 20, numbers: true }),
   );
 
   user = await userModel.create({
@@ -110,15 +113,14 @@ exports.loginUser = CatchAsyncError(async (req, res, next) => {
 
   const user = await userModel.findOne({ email }).select("+password");
   if (!user) return next(new ErrorHandler("User not found", 400));
-  if (user.isAzure)
-    return next(new ErrorHandler("Login with Azure", 400));
+  if (user.isAzure) return next(new ErrorHandler("Login with Azure", 400));
   if (!user.verified)
     return next(new ErrorHandler("Account not activated", 400));
 
   if (!(await comparePassword(password, user.password))) {
     return next(new ErrorHandler("Invalid credentials", 400));
   }
-
+  user.password = undefined;
   sendToken(user, 200, res);
 });
 
@@ -135,23 +137,20 @@ exports.logoutUser = CatchAsyncError(async (req, res) => {
     httpOnly: true,
     sameSite: "none",
     secure: true,
+    maxAge: 0,
+    path: "/",
   });
 
   res.status(200).json({ success: true, message: "Logged out" });
 });
 
 exports.updateUserInfo = CatchAsyncError(async (req, res, next) => {
-  if (req.body.userId !== req.user.id) {
-    return next(new ErrorHandler("Unauthorized", 403));
-  }
+  const user = await userModel.findByIdAndUpdate(req.user.id, req.body, {
+    new: true,
+  });
 
-  const user = await userModel.findByIdAndUpdate(
-    req.user.id,
-    req.body,
-    { new: true }
-  );
-
-  res.status(200).json({ success: true, user });
+  user.password = undefined;
+  res.status(200).json({ success: true, user, message: "Info updated" });
 });
 
 exports.updateUserAvatar = CatchAsyncError(async (req, res, next) => {
@@ -165,7 +164,7 @@ exports.updateUserAvatar = CatchAsyncError(async (req, res, next) => {
 
   const avatar = await uploadOnCloudinary(
     req.files.avatar[0].path,
-    ENUM.CLOUDINARY_AVATAR
+    ENUM.CLOUDINARY_AVATAR,
   );
 
   user.avatar = {
@@ -174,31 +173,70 @@ exports.updateUserAvatar = CatchAsyncError(async (req, res, next) => {
   };
 
   await user.save();
-
-  res.status(200).json({ success: true, user });
+  user.password = undefined;
+  res.status(200).json({ success: true, user, message: "Avatar updated" });
 });
 
-exports.updateUserAddress = CatchAsyncError(async (req, res) => {
+exports.addAddress = CatchAsyncError(async (req, res, next) => {
   const user = await userModel.findById(req.user.id);
+
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
   user.addresses.push(req.body);
   await user.save();
-  res.status(200).json({ success: true, user });
+
+  user.password = undefined;
+
+  res.status(200).json({
+    success: true,
+    user,
+    message: "Address added successfully",
+  });
+});
+
+exports.updateUserAddress = CatchAsyncError(async (req, res, next) => {
+  const { id: addressId } = req.params;
+
+  const user = await userModel.findById(req.user.id);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  const address = user.addresses.id(addressId);
+  if (!address) {
+    return next(new ErrorHandler("Address not found", 404));
+  }
+
+  // Update only provided fields
+  Object.keys(req.body).forEach((key) => {
+    address[key] = req.body[key];
+  });
+
+  await user.save();
+
+  user.password = undefined;
+
+  res.status(200).json({
+    success: true,
+    user,
+    message: "Address updated successfully",
+  });
 });
 
 exports.deleteUserAddress = CatchAsyncError(async (req, res) => {
   await userModel.updateOne(
     { _id: req.user.id },
-    { $pull: { addresses: { _id: req.params.id } } }
+    { $pull: { addresses: { _id: req.params.id } } },
   );
-  res.status(200).json({ success: true });
+  res.status(200).json({ success: true, message: "Address deleted" });
 });
 
 exports.changeUserPassword = CatchAsyncError(async (req, res, next) => {
   const user = await userModel.findById(req.user.id).select("+password");
 
-  if (
-    !(await comparePassword(req.body.oldPassword, user.password))
-  ) {
+  if (!(await comparePassword(req.body.oldPassword, user.password))) {
     return next(new ErrorHandler("Old password incorrect", 400));
   }
 

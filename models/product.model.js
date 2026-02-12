@@ -1,90 +1,91 @@
 const mongoose = require("mongoose");
 
-const productSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Please enter your product name!"],
-  },
-  description: {
-    type: String,
-    required: [true, "Please enter your product description!"],
-  },
-  category: {
-    type: String,
-    required: [true, "Please enter your product category!"],
-  },
-  tags: {
-    type: String,
-  },
-  originalPrice: {
-    type: Number,
-  },
-  discountPrice: {
-    type: Number,
-    required: [true, "Please enter your product price!"],
-  },
-  stock: {
-    type: Number,
-    required: [true, "Please enter your product stock!"],
-  },
-  // images: [
-  //   {
-  //     type: String,
-  //     required: true,
-  //   },
-  // ],
-  images: [
-    {
-      public_id: {
-        type: String,
-        required: true,
-      },
-      url: {
-        type: String,
-        required: true,
-      },
+const productSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Please enter your product name!"],
     },
-  ],
-  reviews: [
-    {
-      user: {
-        type: Object,
-      },
-      rating: {
-        type: Number,
-      },
-      comment: {
-        type: String,
-      },
-      productId: {
-        type: String,
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now(),
-      },
+    description: {
+      type: String,
+      required: [true, "Please enter your product description!"],
     },
-  ],
-  ratings: {
-    type: Number,
+    category: {
+      type: String,
+      required: [true, "Please enter your product category!"],
+    },
+    tags: {
+      type: [String],
+    },
+    originalPrice: {
+      type: Number,
+    },
+    discountPrice: {
+      type: Number,
+      required: [true, "Please enter your product price!"],
+    },
+    stock: {
+      type: Number,
+      required: [true, "Please enter your product stock!"],
+      min: [0, "Stock cannot be negative!"],
+    },
+    images: [
+      {
+        public_id: {
+          type: String,
+          required: true,
+        },
+        url: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    reviews: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        rating: {
+          type: Number,
+          min: 1,
+          max: 5,
+          required: true,
+        },
+        comment: String,
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    ratings: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    shopId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shop",
+      required: true,
+    },
+    sold_out: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  shopId: {
-    type: String,
-    required: true,
+  {
+    timestamps: true,
   },
-  shop: {
-    type: Object,
-    required: true,
-  },
-  sold_out: {
-    type: Number,
-    default: 0,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now(),
-  },
-});
+);
 
 const ProductModel = mongoose.model("Products", productSchema);
 

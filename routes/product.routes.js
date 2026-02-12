@@ -19,18 +19,18 @@ const router = express.Router();
 
 // CREATE PRODUCT
 router.post(
-  "/create-product",
+  "/",
   isSellerAuthenticated,
   upload.array("images", 5),
   createProduct
 );
 
 // GET PRODUCTS BY SHOP
-router.get("/get-all-products/:id", getShopProducts);
+router.get("/shop/:id", getShopProducts);
 
 // DELETE PRODUCT
 router.delete(
-  "/delete-shop-products/:id",
+  "/:id",
   isSellerAuthenticated,
   deleteProduct
 );

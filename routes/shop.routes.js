@@ -25,29 +25,29 @@ const router = express.Router();
 
 // REGISTER SHOP
 router.post(
-  "/create-shop",
+  "/register",
   upload.fields([{ name: "avatar", maxCount: 1 }]),
   createShop
 );
 
 // ACTIVATE SHOP
-router.post("/shop-activation", activateShop);
+router.post("/activate-account", activateShop);
 
 // LOGIN
-router.post("/login-shop", loginShop);
+router.post("/login", loginShop);
 
 // CURRENT SELLER
-router.get("/getSeller", isSellerAuthenticated, getSeller);
+router.get("/me", isSellerAuthenticated, getSeller);
 
 // LOGOUT
 router.get("/logout", logoutSeller);
 
 // PUBLIC SHOP INFO
-router.get("/get-shop-info/:id", getShopInfo);
+router.get("/shop-info/:id", getShopInfo);
 
 // UPDATE AVATAR
 router.put(
-  "/update-shop-avatar",
+  "/update-avatar",
   isSellerAuthenticated,
   upload.fields([{ name: "avatar", maxCount: 1 }]),
   updateShopAvatar
@@ -62,14 +62,14 @@ router.put(
 
 // ADMIN
 router.get(
-  "/admin-all-sellers",
+  "/admin/sellers",
   isAuthenticated,
   isAdmin("Admin"),
   adminGetAllSellers
 );
 
 router.delete(
-  "/delete-seller-by-admin/:id",
+  "/admin/seller/:id",
   isAuthenticated,
   isAdmin("Admin"),
   adminDeleteSeller

@@ -11,44 +11,49 @@ const ENUM = require("../config/ENUM");
 
 // ================= CREATE PRODUCT =================
 exports.createProduct = CatchAsyncError(async (req, res, next) => {
-  const { shopId } = req.body;
+  const sellerId = req.seller?.id;
 
-  const shop = await ShopModel.findById(shopId);
+  if (!sellerId) {
+    return next(new ErrorHandler("Unauthorized", 401));
+  }
+
+  const shop = await ShopModel.findById(sellerId);
   if (!shop) {
-    return next(new ErrorHandler("Shop Id is not valid!", 400));
+    return next(new ErrorHandler("Shop not found", 404));
   }
 
   if (!req.files || req.files.length === 0) {
-    return next(new ErrorHandler("Product images required", 400));
+    return next(new ErrorHandler("Product images are required", 400));
   }
 
-  const imagesLinks = [];
+  // ⚡ Parallel image uploads
+  const imagesLinks = await Promise.all(
+    req.files.map(async (file) => {
+      const result = await uploadOnCloudinary(
+        file.path,
+        ENUM.CLOUDINARY_PRODUCT
+      );
 
-  for (const file of req.files) {
-    const result = await uploadOnCloudinary(
-      file.path,
-      ENUM.CLOUDINARY_PRODUCT
-    );
-
-    imagesLinks.push({
-      public_id: result.public_id,
-      url: result.secure_url,
-    });
-  }
+      return {
+        public_id: result.public_id,
+        url: result.secure_url,
+      };
+    })
+  );
 
   const product = await ProductModel.create({
     ...req.body,
     images: imagesLinks,
-    shop,
-    shopId,
+    shopId: shop._id,        // ✅ reference only     // optional but useful
   });
 
   res.status(201).json({
     success: true,
-    message: "Product Added",
+    message: "Product added successfully",
     product,
   });
 });
+
 
 // ================= GET SHOP PRODUCTS =================
 exports.getShopProducts = CatchAsyncError(async (req, res) => {
